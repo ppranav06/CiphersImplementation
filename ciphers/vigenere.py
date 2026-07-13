@@ -8,52 +8,52 @@ class VigenereCipher(SymmetricCipher):
     """
     Vigenere Cipher
     Caesar cipher for each character
-    Repeat-key implementation
     Unbreakable for 300 years
     """
-    def __init__(self, key) -> None:
+    def __init__(self, 
+        key: str,
+        type: str = 'repeatkey',
+    ) -> None:
         super().__init__(key)
-        self._key = key
-        print(self._key)
+        if type not in ['autokey', 'repeatkey']:
+            raise ValueError('type must be either "autokey" or "repeatkey"')
+        self._type = type
 
     @staticmethod
     def preprocess(text) -> Tuple[str, int]:
-        text = CaesarCipher.remove_spaces(CaesarCipher.convert_to_uppercase(text))
+        text = ''.join(ch for ch in CaesarCipher.convert_to_uppercase(text) if ch.isalpha())
         return text, len(text)
 
-    def extendedkey(self, n):
-        k: str = f"{ self._key * ceil(n/len(self._key)) }"[:n]
-        return k
+    def _char_to_shift(self, char: str) -> int:
+        return ord(char) - ord('A')
+
+    def _shift_to_char(self, shift: int) -> str:
+        return chr((shift % 26) + ord('A'))
+
+    def extendedkey(self, text: str) -> str:
+        """
+        Extends key until length of text. Can follow repeat-key or autokey.
+        Should be provided with the preprocessed text.
+        """
+        n = len(text)
+
+        if self._type == 'repeatkey':
+            return f"{self._key * ceil(n / len(self._key))}"[:n]
+
+        return f"{self._key}{text[:max(0, n - len(self._key))]}"
 
     def encrypt(self, text: str) -> str:
         """
         Encrypts the given text using the Vigenere cipher.
         """
         text, n = VigenereCipher.preprocess(text)
-        
-        # the key used (extended to length of text)
-        k = self.extendedkey(n)
-        
+
+        k = self.extendedkey(text)
         encrypted = ''
         for i in range(n):
-            encrypted += CaesarCipher(
-                    shift = ord(k[i]) - ord('A')
-                ).encrypt(text[i])
+            shift = self._char_to_shift(text[i]) + self._char_to_shift(k[i])
+            encrypted += self._shift_to_char(shift)
 
-        return encrypted
-
-    def encrypt_raw(self, text: str) -> str:
-        """
-        Encryption formula:
-        C_i = (P_i + K_i) % 26
-        """
-        text, n = VigenereCipher.preprocess(text)
-        k = self.extendedkey(n)
-        
-        encrypted = ''
-        for i in range(n):
-            encrypted += chr( (ord(text[i]) + ord(k[i])) % 26 )
-        
         return encrypted
 
     def decrypt(self, text: str) -> str:
@@ -61,15 +61,41 @@ class VigenereCipher(SymmetricCipher):
         Decrypts the given text using the Vigenere cipher.
         """
         text, n = VigenereCipher.preprocess(text)
-        k = self.extendedkey(n)
-        
+
         decrypted = ''
+        if self._type == 'repeatkey':
+            k = self.extendedkey(text)
+            for i in range(n):
+                shift = self._char_to_shift(text[i]) - self._char_to_shift(k[i])
+                decrypted += self._shift_to_char(shift)
+            return decrypted
+
         for i in range(n):
-            decrypted += CaesarCipher(
-                    shift = ord(k[i]) - ord('A')
-                ).decrypt(text[i])
+            if i < len(self._key):
+                key_char = self._key[i]
+            else:
+                key_char = decrypted[i - len(self._key)]
+
+            shift = self._char_to_shift(text[i]) - self._char_to_shift(key_char)
+            decrypted += self._shift_to_char(shift)
 
         return decrypted
+
+    def encrypt_raw(self, text: str) -> str:
+        """
+        Encryption formula:
+        C_i = (P_i + K_i) % 26
+        """
+        text, n = VigenereCipher.preprocess(text)
+        k = self.extendedkey(text)
+        
+        encrypted = ''
+        for i in range(n):
+            encrypted += self._shift_to_char(
+                self._char_to_shift(text[i]) + self._char_to_shift(k[i])
+            )
+        
+        return encrypted
 
     def decrypt_raw(self, text: str) -> str:
         """
@@ -77,15 +103,29 @@ class VigenereCipher(SymmetricCipher):
         P_i = (C_i - K_i) % 26
         """
         text, n = VigenereCipher.preprocess(text)
-        k = self.extendedkey(n)
+        k = self.extendedkey(text)
 
         decrypted = ''
+        if self._type == 'repeatkey':
+            for i in range(n):
+                decrypted += self._shift_to_char(
+                    self._char_to_shift(text[i]) - self._char_to_shift(k[i])
+                )
+            return decrypted
+
         for i in range(n):
-            decrypted += chr( (ord(text[i]) - ord(k[i])) % 26 )
+            if i < len(self._key):
+                key_char = self._key[i]
+            else:
+                key_char = decrypted[i - len(self._key)]
+
+            decrypted += self._shift_to_char(
+                self._char_to_shift(text[i]) - self._char_to_shift(key_char)
+            )
         return decrypted
 
 if __name__ == '__main__':
-    cipher = VigenereCipher(key='OBLIQUEASS')
+    cipher = VigenereCipher(key='OBLIQUEASS', type='autokey')
     encrypted = cipher.encrypt('The quick brown fox jumps over lazy dogs.')
     print(encrypted)
     decrypted = cipher.decrypt(encrypted)
