@@ -1,12 +1,9 @@
 
-from posix import stat
-from this import s
-
-from .interfaces import SymmetricCipher
+from interfaces import SymmetricCipher
 
 class CaesarCipher(SymmetricCipher):
     """
-    Simple shift cipher. Uses only one case (uppercase)
+    Simple shift cipher. Uses only one case (uppercase).
     """
 
     def __init__(self, shift: int) -> None:
@@ -38,16 +35,14 @@ class CaesarCipher(SymmetricCipher):
         return encrypted
 
     def decrypt(self, text: str) -> str:
-        """dumbass cipher. same decryption method as encrypt"""
+        """dumbass cipher. same decryption method as encrypt. encrypting twice gives back original text."""
         text = CaesarCipher.convert_to_uppercase(text)
-        decrypted = ''
-        for char in text:
-            decrypted += self.shift_char(char)
+        decrypted = self.encrypt(text)
         return decrypted
 
 if __name__ == "__main__":
     ROT13 = CaesarCipher(13)
-    encrypted = ROT13.encrypt("hello world")
+    encrypted = ROT13.encrypt("Red Wheelbarrow BBQ")
     print(encrypted)
     decrypted = ROT13.decrypt(encrypted)
     print(decrypted)
