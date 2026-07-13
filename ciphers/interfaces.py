@@ -12,9 +12,9 @@ class Cipher(ABC):
 
 class SymmetricCipher(Cipher):
     def __init__(self, key) -> None:
-        self.__key : str = key
+        self._key : str = key
 
 
 class AsymmetricCipher(Cipher):
     def __init__(self, key) -> None:
-        self.__key : str = key
+        self._key : str = key
