@@ -37,10 +37,13 @@ class VigenereCipher(SymmetricCipher):
         """
         n = len(text)
 
-        if self._type == 'repeatkey':
-            return f"{self._key * ceil(n / len(self._key))}"[:n]
-
-        return f"{self._key}{text[:max(0, n - len(self._key))]}"
+        # autokey: includes KEY<RESTOFTEXT> as the encrypting key
+        if self._type == 'autokey':
+            return f"{self._key}{text[:max(0, n - len(self._key))]}"
+        
+        # default: repeat key
+        return f"{self._key * ceil(n / len(self._key))}"[:n]
+            
 
     def encrypt(self, text: str) -> str:
         """
@@ -49,6 +52,7 @@ class VigenereCipher(SymmetricCipher):
         text, n = VigenereCipher.preprocess(text)
 
         k = self.extendedkey(text)
+        print(k)
         encrypted = ''
         for i in range(n):
             shift = self._char_to_shift(text[i]) + self._char_to_shift(k[i])
